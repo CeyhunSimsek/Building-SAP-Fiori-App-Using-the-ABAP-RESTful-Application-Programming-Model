@@ -1,0 +1,85 @@
+managed implementation in class ZBP_R_RAP100_ATRAV172 unique;
+strict ( 2 );
+with draft;
+define behavior for ZR_RAP100_ATRAV172 alias travel
+persistent table zrap100_atrav172
+draft table zrap100_atrav1_d
+etag master LocalLastChangedAt
+lock master total etag LastChangedAt
+authorization master ( global )
+early numbering
+
+{
+
+  field ( readonly )
+  CreatedAt,
+  CreatedBy,
+  LastChangedAt,
+  LocalLastChangedAt,
+  LocalLastChangedBy;
+
+  field ( readonly )
+  TravelID;
+
+  //Empty fields will not be accepted
+  field ( mandatory )
+  CustomerID,
+  BeginDate,
+  EndDate;
+
+  create;
+update ( features : instance ) ;
+delete ( features : instance ) ;
+
+  //The statement specifies the name of the new determination, setStatusToOpen and on modify as the determination time when creating new travel instance ({ create }).
+  determination setStatusToOpen on modify { create; }
+
+  validation validateCustomer on save { create; field CustomerID; }     //Validations are always invoked during the save
+  validation validateDates on save { create; field BeginDate, EndDate; } //Both validations will be triggered with create operation
+
+  draft action ( features : instance ) Edit;
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Resume;
+  //In order to have draft instances being checked and determinations being executed before they become active, they have to be specified for the draft determine action prepare in the behavior definition.
+  draft determine action Prepare
+  {
+    validation validateCustomer;
+    validation validateDates; }
+//In the RAP context, an action is a non-standard operation that change the data of a BO instance.
+//They are self-implemented operations.Two main categories of actions can be implemented in RAP
+// This action will be Non-factory in which custom logic must be implemented in the RAP handler method FOR MODIFY
+
+action ( features : instance ) deductDiscount parameter /dmo/a_travel_discount result [1] $self;
+//Second action method is the factory method which is the next action
+//Factory actions are used to create RAP BO entity instances. Factory actions can be instance-bound (default) or static.
+//Instance-bound factory actions can copy specific values of an instance.
+//Static factory actions can be used to create instances with prefilled default values.
+factory action copyTravel [1];
+
+action ( features : instance ) acceptTravel result [1] $self;
+action ( features : instance ) rejectTravel result [1] $self;
+
+
+  mapping for zrap100_atrav172
+    {
+      TravelID           = travel_id;
+      AgencyID           = agency_id;
+      CustomerID         = customer_id;
+      BeginDate          = begin_date;
+      EndDate            = end_date;
+      BookingFee         = booking_fee;
+      TotalPrice         = total_price;
+      CurrencyCode       = currency_code;
+      Description        = description;
+      OverallStatus      = overall_status;
+      Attachment         = attachment;
+      MimeType           = mime_type;
+      FileName           = file_name;
+      CreatedBy          = created_by;
+      CreatedAt          = created_at;
+      LocalLastChangedBy = local_last_changed_by;
+      LocalLastChangedAt = local_last_changed_at;
+      LastChangedAt      = last_changed_at;
+    }
+}
